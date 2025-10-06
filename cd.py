@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import time
-from sklearn.metrics import silhouette_score, davies_bouldin_score
 from statsmodels.tsa.arima.model import ARIMA
 import folium
 from folium.plugins import HeatMap
@@ -557,3 +556,4 @@ elif menu == "7. Download Output":
             file_name="dbscan_output.csv",
             mime='text/csv'
         )
+
