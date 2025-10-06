@@ -11,6 +11,8 @@ import folium
 from folium.plugins import HeatMap
 from streamlit.components.v1 import html
 from rtree import index  # For CD-DBSCAN
+import os
+from datetime import datetime
 
 st.set_page_config(page_title="DBSCAN Simulator", layout="wide")
 
@@ -178,6 +180,27 @@ def run_cd_dbscan(df):
     df['cluster'] = labels
     return df, cluster_id, avg_query_time
 
+# --- NEW FUNCTION FOR SAVING (Place this function above the main menu logic) ---
+
+def save_clustered_csv_to_folder(df):
+    """Saves the clustered DataFrame to a local folder with a timestamp."""
+    # Define the local folder for history
+    SAVE_FOLDER = 'dbscan_history' 
+    
+    # 1. Create the directory if it doesn't exist
+    os.makedirs(SAVE_FOLDER, exist_ok=True)
+
+    # 2. Generate a unique, timestamped filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"dbscan_clustered_output_{timestamp}.csv"
+    save_path = os.path.join(SAVE_FOLDER, filename)
+
+    try:
+        # 3. Save the DataFrame
+        df.to_csv(save_path, index=False)
+        return {"status": "success", "path": save_path}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # ---------------- MAIN APP ----------------
 
@@ -542,18 +565,36 @@ elif menu == "6. Comparison":
 
         st.pyplot(fig)
 
-# Step 7: Output & Download
 elif menu == "7. Download Output":
-    st.subheader("📄 Clustered Data Preview")
+    st.subheader("💾 Output & Save Clustered Data")
+    
     if st.session_state.df is None:
-        st.warning("Please run clustering first.")
+        st.warning("Please upload and run clustering first to see the data.")
     else:
         df = st.session_state.df
-        st.dataframe(df.head(100))
-        st.download_button(
-            label="💾 Download Clustered CSV",
-            data=df.to_csv(index=False).encode('utf-8'),
-            file_name="dbscan_output.csv",
-            mime='text/csv'
-        )
+        
+        if 'cluster' not in df.columns:
+            st.warning("Data is uploaded but clustering has not been run. Please go to '2. Run Clustering'.")
+        else:
+            st.write(f"Displaying the first {min(100, len(df))} rows of the clustered data.")
+            st.dataframe(df.head(100))
+            
+            st.markdown("---")
+            
+            # Create the save button
+            if st.button("📁 Save to Output  History Folder"):
+                
+                # Call the new saving function
+                with st.spinner("Saving file to system folder..."):
+                    save_result = save_clustered_csv_to_folder(df)
+
+                if save_result['status'] == "success":
+                    # Success message with the path
+                    st.success(f"✅ **Results successfully saved!** You can find your output history here:")
+                    st.code(save_result['path'])
+                else:
+                    # Error message
+                    st.error(f"❌ **Failed to save file!** Error: {save_result['message']}")
+            
+            st.info("This is the final step. Your data is ready to be saved to your local history folder.")
 
