@@ -323,6 +323,11 @@ elif menu == "2. Run Clustering":
             # Optional: preview clustered data
             st.dataframe(df.head())
 
+            if 'labels' in st.session_state:
+            # The button now uses the callback function to set the state.
+                if st.button("Proceed to Step 3: Visualizations 🗺️", on_click=go_to_step_3):
+                    pass # No more manual state change or st.rerun() needed here.
+
 # Step 3: Visualizations
 elif menu == "3. Visualizations":
     st.subheader("🗺️ Cluster Visualizations")
