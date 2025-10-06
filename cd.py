@@ -381,11 +381,24 @@ elif menu == "3. Visualizations":
         df = st.session_state.df
 
         fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Remove (0,0) noise points if any
+        df = df[(df['LAT'] != 0) & (df['LON'] != 0)]
+
         sns.scatterplot(
             data=df.sample(min(10000, len(df))),
             x='LON', y='LAT', hue='cluster',
             palette='tab20', s=10, ax=ax, legend=False
         )
+
+        # Auto-zoom based on data range
+        ax.set_xlim(df['LON'].min() - 0.01, df['LON'].max() + 0.01)
+        ax.set_ylim(df['LAT'].min() - 0.01, df['LAT'].max() + 0.01)
+
+        ax.set_xlabel("Longitude")
+        ax.set_ylabel("Latitude")
+        ax.set_title("📊 Cluster Visualization")
+
         st.pyplot(fig)
 
         st.subheader("🌍 Interactive Folium Map")
