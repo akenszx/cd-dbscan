@@ -21,16 +21,26 @@ st.title("📍 Spatiotemporal DBSCAN Simulator")
 # Sidebar Navigation
 st.sidebar.title("Navigation")
 
-
-menu = st.sidebar.radio("Go to", [
-    "1. Upload & Preprocess",
-    "2. Run Clustering",
-    "3. Visualizations",
+# --- Sidebar Setup ---
+menu_options = [
+    "1. Upload & Preprocess", 
+    "2. Run Clustering", 
+    "3. Visualizations", 
     "4. Evaluation",
     "5. Forecasting",
     "6. Comparison",
-    "7. Download Output",
-])
+    "7. Download Output"
+]
+
+# CRITICAL FIX: Use the 'key' argument to connect the widget to st.session_state.menu
+st.sidebar.radio(
+    "Select Step", 
+    menu_options, 
+    key='menu' # <--- THIS ENSURES THE WIDGET REFLECTS SESSION STATE
+)
+
+# Now, retrieve the menu variable from session state for your main logic
+menu = st.session_state.menu
 
 # Sidebar Parameters
 st.sidebar.header("⚙️ Parameters")
@@ -79,6 +89,37 @@ if 'labels' not in st.session_state:
     st.session_state.labels = None
 if 'spatial_index' not in st.session_state:
     st.session_state.spatial_index = None
+
+if 'menu' not in st.session_state:
+    st.session_state.menu = "1. Upload & Preprocess"
+
+# --- CALLBACKS FOR ALL STEPS ---
+
+def go_to_step_2():
+    """Sets the menu state to '2. Run Clustering'."""
+    st.session_state.menu = "2. Run Clustering"
+
+def go_to_step_3():
+    """Sets the menu state to '3. Visualizations'."""
+    st.session_state.menu = "3. Visualizations"
+
+def go_to_step_4():
+    """Sets the menu state to '4. Evaluation'."""
+    st.session_state.menu = "4. Evaluation"
+
+def go_to_step_5():
+    """Sets the menu state to '5. Forecasting'."""
+    st.session_state.menu = "5. Forecasting"
+
+def go_to_step_6():
+    """Sets the menu state to '6. Comparison'."""
+    st.session_state.menu = "6. Comparison"
+
+def go_to_step_7():
+    """Sets the menu state to '7. Download Output' (the final step)."""
+    st.session_state.menu = "7. Download Output"
+
+# --- END OF CALLBACKS ---
 
 
 # ---------------- CLUSTERING FUNCTIONS ----------------
@@ -257,6 +298,9 @@ if menu == "1. Upload & Preprocess":
         # Save to session states
         st.session_state.df = df
 
+        if st.button("Proceed to Step 2: Run Clustering 🚀", on_click=go_to_step_2):
+            pass # No more manual state change or st.rerun() needed here.
+
 
 # Step 2: Run Clustering
 elif menu == "2. Run Clustering":
@@ -363,6 +407,9 @@ elif menu == "3. Visualizations":
         heat_data = [[row['LAT'], row['LON']] for _, row in df.iterrows()]
         HeatMap(heat_data).add_to(m2)
         html(m2._repr_html_(), height=600)
+
+        if st.button("Proceed to Step 4: Evaluation 📈", on_click=go_to_step_4):
+            pass # State change handled by callback
 
 # Step 5: Evaluation
 elif menu == "4. Evaluation":
@@ -472,6 +519,9 @@ elif menu == "4. Evaluation":
         else:
             st.write("No quality messages available.")
 
+        if st.button("Proceed to Step 5: Forecasting 📅", on_click=go_to_step_5):
+            pass # No more manual state change or st.rerun() needed here.
+
 
 
 # Step 5: Forecasting
@@ -495,6 +545,9 @@ elif menu == "5. Forecasting":
             ax2.set_title("Crime Incident Forecast")
             ax2.legend()
             st.pyplot(fig2)
+
+            if st.button("Proceed to Step 6: Comparison ⚖️", on_click=go_to_step_6):
+                pass # State change handled by callback
 
 # Step 6: Comparison
 elif menu == "6. Comparison":
@@ -569,6 +622,9 @@ elif menu == "6. Comparison":
         axes[1].set_title("CD-DBSCAN")
 
         st.pyplot(fig)
+
+        if st.button("Proceed to Step 7: Download Output 📄", on_click=go_to_step_7):
+            pass # State change handled by callback
 
 elif menu == "7. Download Output":
     st.subheader("💾 Output & Save Clustered Data")
