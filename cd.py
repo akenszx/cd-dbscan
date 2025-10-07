@@ -536,29 +536,104 @@ elif menu == "4. Evaluation":
         if st.button("Proceed to Step 5: Forecasting 📅", on_click=go_to_step_5):
             pass # No more manual state change or st.rerun() needed here.
 
-
-
 # Step 5: Forecasting
 elif menu == "5. Forecasting":
     st.subheader("📅 Forecasting with ARIMA")
+
     if st.session_state.df is None:
         st.warning("Please run clustering first.")
     else:
         df = st.session_state.df
-        cluster_counts = df.groupby(df['timestamp'].dt.date)['cluster'].count()
-        if cluster_counts.empty:
-            st.warning("No data available for forecasting.")
+        
+        # --- REVISION 1: Aggregate data per month ---
+        # Instead of grouping by date (daily), group by month (using a monthly period)
+        df['month'] = df['timestamp'].dt.to_period('M')
+        # Aggregate the count of incidents (clusters) per month
+        cluster_counts_monthly = df.groupby('month')['cluster'].count()
+        # Convert the PeriodIndex back to a DatetimeIndex for ARIMA and Plotly
+        cluster_counts_monthly.index = cluster_counts_monthly.index.to_timestamp()
+        
+        if cluster_counts_monthly.empty:
+            st.warning("No data available for monthly forecasting.")
         else:
-            model = ARIMA(cluster_counts, order=(1, 1, 1))
+            # ARIMA Model Fitting (using the monthly data)
+            # The 'order' (p,d,q) might need tuning for monthly data, but we keep (1,1,1) for now.
+            model = ARIMA(cluster_counts_monthly, order=(1, 1, 1))
             results = model.fit()
+            
+            # Forecast steps: 7 months
             forecast = results.forecast(steps=7)
 
-            fig2, ax2 = plt.subplots()
-            cluster_counts.plot(ax=ax2, label='Observed')
-            forecast.plot(ax=ax2, label='Forecast', style='--')
-            ax2.set_title("Crime Incident Forecast")
-            ax2.legend()
-            st.pyplot(fig2)
+            # --- REVISION 2: Combine Observed and Forecast data into a single DataFrame ---
+            
+            # Prepare the Observed Data
+            df_observed = cluster_counts_monthly.reset_index()
+            df_observed.columns = ['Date', 'Count']
+            df_observed['Type'] = 'Observed'
+
+            # Prepare the Forecast Data
+            df_forecast = forecast.reset_index()
+            df_forecast.columns = ['Date', 'Count']
+            df_forecast['Type'] = 'Forecast'
+            
+            # Combine the two for plotting
+            df_plot = pd.concat([df_observed, df_forecast])
+            
+            # --- REVISION 3: Interactive Plotly Line Chart with Hover Text ---
+
+            st.write("---")
+            # User selection widget for chart type (Line or Bar)
+            chart_type = st.radio(
+                "Select Chart Type:",
+                ('Line', 'Bar'),
+                horizontal=True,
+                index=0 # Default to Line Chart
+            )
+            if chart_type == 'Line':
+                # Create the interactive Plotly Line Chart
+                fig2 = px.line(
+                    df_plot, 
+                    x='Date', 
+                    y='Count', 
+                    color='Type',             # Differentiate Observed and Forecast
+                    title="Crime Incident Forecast (Monthly)",
+                    markers=True,             # Adds dots like in the reference image
+                    labels={'Count': 'Monthly Incident Count', 'Date': 'Month'},
+                    line_dash='Type',         # Use dashed line for 'Forecast'
+                    # Custom hover text to show the exact count and date
+                    hover_data={
+                        'Date': '|%Y-%m',     # Format date as Year-Month
+                        'Count': True,        # Show the Count (incident value)
+                        'Type': False         # Hide the Type from the hover box
+                    }
+                )
+                
+                # Further customization to make the line smooth (using 'spline' line shape)
+                fig2.update_traces(line=dict(shape='spline'))
+                
+                # Optional: Match colors to the reference style (Blue/Orange)
+                fig2.update_traces(selector=dict(name='Observed'), line=dict(color='blue'))
+                fig2.update_traces(selector=dict(name='Forecast'), line=dict(color='orange'))
+                
+                st.plotly_chart(fig2, use_container_width=True)
+
+            elif chart_type == 'Bar':
+                 # Create the interactive Plotly Bar Chart
+                 fig2 = px.bar(
+                    df_plot, 
+                    x='Date', 
+                    y='Count', 
+                    color='Type', 
+                    title="Crime Incident Forecast (Monthly)",
+                    labels={'Count': 'Monthly Incident Count', 'Date': 'Month'},
+                    barmode='group' # Group bars by 'Observed' and 'Forecast' 
+                )
+                 # Optional: Match colors
+                 fig2.update_traces(selector=dict(name='Observed'), marker_color='blue')
+                 fig2.update_traces(selector=dict(name='Forecast'), marker_color='orange')
+                 
+                 st.plotly_chart(fig2, use_container_width=True)
+
 
             if st.button("Proceed to Step 6: Comparison ⚖️", on_click=go_to_step_6):
                 pass # State change handled by callback
