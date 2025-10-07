@@ -13,6 +13,7 @@ from streamlit.components.v1 import html
 from rtree import index  # For CD-DBSCAN
 import os
 from datetime import datetime
+import plotly.express as px
 
 st.set_page_config(page_title="DBSCAN Simulator", layout="wide")
 
